@@ -157,6 +157,7 @@ ansible-collections/vyos.vyos
 ```
 
 **Filter and record results based on the timeline (default: T-14 days)**
+
 - **Ignore** PRs where isDraft is True
 - **Ignore** closed issues
 - **Ignore** closed/merged PRs
@@ -172,7 +173,7 @@ For each repo, check the latest CI workflow run status:
 
 ```bash
 gh run list --repo ansible-collections/cisco.ios --workflow tests.yml \
-  --json status,conclusion,headBranch,createdAt --limit 5
+  --json status,conclusion,headBranch,createdAt,url --limit 5 --branch main
 ```
 
 Note any repos where the main branch CI is currently failing — this feeds
@@ -281,6 +282,7 @@ quick human review.
 Share both file links and a brief summary: total items, breakdown by
 severity, any critical items or cross-collection signals that need
 immediate attention.
+
 ### Step 6 — Generate the markdown
 
 Create a detailed markdown report of the triage results, ensuring all the issues and PRs are listed in the report. It should be written in the user's current working directory.
@@ -289,6 +291,7 @@ Create a detailed markdown report of the triage results, ensuring all the issues
 
 Generate a JSON file of the triage results, ensuring all the issues and PRs are listed in the JSON file. It should be written in the user's current working directory.
 The format of the JSON file should be as mentioned below:
+
 ## Output — JSON schema
 
 The agent **must** emit valid JSON (UTF-8). Top-level shape:
