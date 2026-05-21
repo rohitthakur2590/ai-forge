@@ -11,6 +11,20 @@ description: >-
   network issues, scan network issues, weekly triage, triage CI failure,
   or triage collection issue. Do not use for non-network collections or
   general Ansible questions.
+triggers:
+  - triage network issues
+  - triage network
+  - scan network issues
+  - weekly triage
+  - triage CI failure
+  - triage collection issue
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Glob
+  - Grep
+argument-hint: "[<github-issue-url>] [--scan]"
 ---
 
 # Skill: network-collection-triage
