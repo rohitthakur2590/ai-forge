@@ -103,6 +103,7 @@ for additional context if needed (collection, platform, Ansible version).
 |---|---|---|
 | `ansible.netcommon` | Shared (connection plugins, base classes) | N/A |
 | `ansible.utils` | Shared (utility filters, cli_parse) | N/A |
+| `ansible.pylibssh` | SSH Client for Ansible Network Collections | N/A |
 | `cisco.ios` | Cisco IOS / IOS-XE | network_cli |
 | `cisco.iosxr` | Cisco IOS-XR | network_cli, netconf |
 | `cisco.nxos` | Cisco NX-OS | network_cli, httpapi |
@@ -121,20 +122,21 @@ for additional context if needed (collection, platform, Ansible version).
 
 ### Step 1 — Fetch open issues and PRs across all repos
 
-Use `gh` to query each repo in scope. Fetch open issues labelled `bug`
+Use `gh` to query each repo in scope. Fetch open issues
 and open pull requests from the last 14 days (configurable).
 
 **For bugs (issues):**
 
 ```bash
-gh issue list --repo ansible-collections/cisco.ios --label bug --state open \
-  --json number,title,url,labels,createdAt,author,assignees --limit 50
+gh issue list --repo ansible-collections/cisco.ios --state open \
+  --search "updated:>=YYYY-MM-DD draft:false" --json number,title,url,labels,createdAt,author,assignees --limit 50
 ```
 
 **For pull requests:**
 
 ```bash
 gh pr list --repo ansible-collections/cisco.ios --state open \
+  --search "updated:>=YYYY-MM-DD draft:false" \
   --json number,title,url,labels,createdAt,author,isDraft,reviewDecision \
   --limit 50
 ```
@@ -143,6 +145,7 @@ Run these for every repo in the Collections in Scope table:
 
 ```
 ansible-collections/ansible.netcommon
+ansible-collections/ansible.pylibssh
 ansible-collections/ansible.utils
 ansible-collections/cisco.ios
 ansible-collections/cisco.iosxr
@@ -152,6 +155,14 @@ ansible-collections/junipernetworks.junos
 ansible-collections/cisco.asa
 ansible-collections/vyos.vyos
 ```
+
+**Filter and record results based on the timeline (default: T-14 days)**
+- **Ignore** PRs where isDraft is True
+- **Ignore** closed issues
+- **Ignore** closed/merged PRs
+- **Ignore** any issue or PR that is labelled as 'stale'
+- Group by repository and type (issue vs PR)
+- **Store ALL items** for the complete listing section (no filtering at this stage)
 
 Combine all results into a single list for processing.
 
@@ -165,7 +176,11 @@ gh run list --repo ansible-collections/cisco.ios --workflow tests.yml \
 ```
 
 Note any repos where the main branch CI is currently failing — this feeds
-into cross-collection signal detection in Step 5.
+into cross-collection signal detection step.
+
+Use the five mostrecent runs from the query (`--limit 5`). Count a run as passing only when
+`conclusion` is `success`; any other conclusion or a missing run slot counts
+as non-passing for health (`green` 5/5, `yellow` 3–4/5, `red` 0–2/5).
 
 ### Step 3 — Categorize every item
 
@@ -227,13 +242,13 @@ Escalators can only raise severity, never lower it.
 
 | Condition | Action |
 |---|---|
-| Bug in `ansible.netcommon` or `ansible.utils` | **Always Critical** — cascade risk |
+| Bug in `ansible.netcommon`, `ansible.utils` or `ansible.pylibssh` | **Always Critical** — cascade risk |
 | Data loss or security issue | **Critical** |
 | Multiple collections failing with same root cause | **Critical** — cascade event |
 
 ### Step 6 — Detect cross-collection signals
 
-If a bug or failing CI is in `ansible.netcommon` or `ansible.utils`:
+If a bug or failing CI is in `ansible.netcommon`, `ansible.utils` or `ansible.pylibssh`:
 
 - List all downstream collections importing the affected code
 - Check if their CI is currently failing (from Step 2 data)
@@ -243,6 +258,7 @@ If a bug or failing CI is in `ansible.netcommon` or `ansible.utils`:
 Dependency chain:
 
 ```
+ansible.pylibssh ──→ ansible.netcommon
 ansible.netcommon ──→ cisco.ios, cisco.iosxr, cisco.nxos,
                       arista.eos, junipernetworks.junos,
                       cisco.asa, vyos.vyos
@@ -298,6 +314,29 @@ The agent **must** emit valid JSON (UTF-8). Top-level shape:
 | `url` | string | GitHub repo URL |
 | `issues` | array | All issues in window (see row shape). |
 | `pullRequests` | array | All PRs in window (same row shape + PR fields). |
+| `ci-status` | object | Latest main-branch CI from Step 2 (`gh run list --limit 5`). |
+
+**`ci-status` object** (per repo; omit only if `gh run list` failed for that repo)
+
+| Field | Type | Description |
+|--------|------|-------------|
+| `workflow` | string | Workflow file queried (e.g. `tests.yml`). |
+| `branch` | string | Branch filter used (e.g. `main`). |
+| `checkedAt` | string | ISO 8601 when CI was fetched. |
+| `passCount` | number | Runs with `conclusion: success` among the five slots (0–5). |
+| `totalCount` | number | Always `5` (fewer returned runs count as non-passing). |
+| `health` | string | `green` (5/5) \| `yellow` (3–4/5) \| `red` (0–2/5). |
+| `runs` | array | Up to five run objects (newest first), same order as `gh run list`. |
+
+**`ci-status.runs[]` entry**
+
+| Field | Type | Description |
+|--------|------|-------------|
+| `conclusion` | string \| null | `success`, `failure`, `cancelled`, `skipped`, etc. |
+| `status` | string | e.g. `completed`, `in_progress`. |
+| `createdAt` | string | ISO 8601 from `gh`. |
+| `headBranch` | string | Branch for the run. |
+| `url` | string (optional) | GitHub Actions run URL. |
 
 **Issue / PR row (fields consumers commonly read; include as many as you have from `gh` and analysis)**
 
@@ -348,7 +387,7 @@ mode). If a known pattern matches, document it and skip to resolution.
 
 ### Step 3 — Cross-collection dependency check
 
-If the bug is in `ansible.netcommon` or `ansible.utils`, check the
+If the bug is in `ansible.netcommon`, `ansible.utils` or `ansible.pylibssh`, check the
 dependency chain (same as scan mode Step 6).
 
 ### Step 4 — Apply severity escalators
