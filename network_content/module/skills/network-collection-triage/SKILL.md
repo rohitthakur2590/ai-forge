@@ -265,6 +265,62 @@ quick human review.
 Share both file links and a brief summary: total items, breakdown by
 severity, any critical items or cross-collection signals that need
 immediate attention.
+### Step 6 — Generate the markdown
+
+Create a detailed markdown report of the triage results, ensuring all the issues and PRs are listed in the report. It should be written in the user's current working directory.
+
+### Step 7 — Generate the JSON
+
+Generate a JSON file of the triage results, ensuring all the issues and PRs are listed in the JSON file. It should be written in the user's current working directory.
+The format of the JSON file should be as mentioned below:
+## Output — JSON schema
+
+The agent **must** emit valid JSON (UTF-8). Top-level shape:
+
+| Field | Type | Description |
+|--------|------|-------------|
+| `schemaVersion` | string | e.g. `"1.1"` |
+| `meta` | object | `generatedAt` (ISO 8601), `timelineStart`, `timelineEnd`, `repos` (short names `owner/repo`) |
+| `statistics` | object | `totalIssues`, `totalPrs`, `criticalCount`, `staleCount`, plus optional `issuesOpen`, `prsOpen`, etc. |
+| `priorityMatrix` | object | Keys `critical`/`high`/`medium`/`low`, each with `immediate`, `thisWeek`, `thisMonth`, `backlog` counts (numbers). |
+| `criticalItems` | array | Objects with at least `url`, `title`, `repo`, `severity`, `impact`, `recommendedOwner`, `nextAction`, `component`. |
+| `highPriorityItems` | array | Same style as critical, subset for highlighting. |
+| `prReviewHighlights` | array | PR-focused objects (`url`, `title`, `reviewStatus`, `recommendedAction`, …). |
+| `recommendedActions` | array of string | Short imperative lines (assign, escalate, merge-ready, …). |
+| `repositories` | array | One object per repo scanned (see below). |
+| `executiveSummaryMarkdown` | string (optional) | Bullet-style markdown for chat if useful. |
+
+**`repositories[]` entry**
+
+| Field | Type | Description |
+|--------|------|-------------|
+| `name` | string | `owner/repo` |
+| `url` | string | GitHub repo URL |
+| `issues` | array | All issues in window (see row shape). |
+| `pullRequests` | array | All PRs in window (same row shape + PR fields). |
+
+**Issue / PR row (fields consumers commonly read; include as many as you have from `gh` and analysis)**
+
+| Field | Type | Notes |
+|--------|------|------|
+| `number` | number | Issue or PR number. |
+| `title` | string | Plain text title. |
+| `url` | string | Canonical GitHub issue/PR URL. |
+| `state` | string | e.g. `open`, `closed`, `merged` (PRs). |
+| `severity` | string | `critical` \| `high` \| `medium` \| `low`. |
+| `summary` | string | Under five lines; rationale for severity. |
+| `labels` | array | Strings or `{ "name": "..." }`. |
+| `assignees` | array | Prefer `[{ "login": "octocat" }, ...]` or string[] for broad consumer compatibility. |
+| `author` | string (optional) | PR author login. |
+| `createdAt` / `updatedAt` | string (optional) | ISO dates from `gh --json`. |
+| `component` | string | Best SME/component guess. |
+| `recommendedOwner` | string | SME or team contact label. |
+| `nextAction` | string | One line. |
+| `reviewStatus` | string (PR) | Approved / changes requested / pending. |
+
+**Completeness**: `sum(repositories[].issues.length)` must equal the open issues you analyzed for the listing (per workflow rules); same for PRs. Nothing omitted for brevity.
+
+---
 
 ---
 
@@ -344,70 +400,7 @@ Every triage produces this structured report:
 
 ---
 
-## JSON Output Schema
-
-The JSON output file follows this structure. A separate dashboard frontend
-can load this file to render a visual report.
-
-```json
-{
-  "metadata": {
-    "date": "2026-05-20",
-    "mode": "scan",
-    "period_days": 14,
-    "collections_scanned": ["cisco.ios", "cisco.iosxr", "..."],
-    "skill_version": "1.0"
-  },
-  "summary": {
-    "total_items": 11,
-    "by_type": { "pull_request": 8, "issue": 3 },
-    "by_severity": { "critical": 1, "major": 3, "minor": 5, "trivial": 2 },
-    "by_category": { "bug": 2, "downstream_fix": 3, "feature": 2, "test_infra": 2, "chore": 2 },
-    "cross_collection_signals": 1
-  },
-  "items": [
-    {
-      "number": 1,
-      "github_url": "https://github.com/ansible-collections/cisco.ios/pull/1325",
-      "type": "pull_request",
-      "title": "...",
-      "collection": "cisco.ios",
-      "component": "ios_vlans",
-      "category": "downstream_fix",
-      "severity": "major",
-      "severity_justification": "...",
-      "escalators_applied": [],
-      "known_pattern_match": null,
-      "cross_collection_impact": "none",
-      "root_cause": "...",
-      "recommended_action": "..."
-    }
-  ],
-  "signals": [
-    {
-      "type": "cascade",
-      "title": "netcommon breakage affecting 3 collections",
-      "description": "...",
-      "affected_collections": ["cisco.ios", "cisco.iosxr", "arista.eos"]
-    }
-  ],
-  "priority_actions": [
-    {
-      "priority": "critical",
-      "description": "Cut ansible.netcommon release to unblock downstream CI",
-      "related_items": [1, 5]
-    }
-  ]
-}
-```
-
-Generate JSON for scan mode always. For direct mode, output the single
-item's triage report in markdown (using the Output Format above) unless
-the user specifically asks for JSON.
-
----
-
-## Error Handling
+## File Structure
 
 - **`gh` not authenticated**: Run `gh auth status`. If not logged in, inform
   user to run `gh auth login` and stop.
