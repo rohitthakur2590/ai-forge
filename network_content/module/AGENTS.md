@@ -9,16 +9,16 @@ Module provides skills for network automation workflows specific to Ansible netw
 - **network-collection-triage skill**: Use the `network-collection-triage` skill to triage bug reports,
   CI failures, and GitHub issues across Ansible network collections (cisco.ios, cisco.iosxr, cisco.nxos,
   arista.eos, junipernetworks.junos, ansible.netcommon, ansible.utils). Supports two modes: scan mode
-  for bulk weekly triage across all repos (generates an HTML dashboard), and direct mode for deep triage
-  of a single issue. Invoke when asked to "triage network issues", "scan network issues", "run triager",
-  "weekly triage", "triage CI failure", or "triage collection issue".
+  for bulk weekly triage across all repos (outputs structured JSON and markdown), and direct mode for
+  deep triage of a single issue. Includes cross-collection cascade detection for shared dependencies
+  (netcommon, utils) and known network CI failure patterns. Invoke when asked to "triage network issues",
+  "scan network issues", "weekly triage", "triage CI failure", or "triage collection issue".
 
 ## Configuration
 
-**Optional Dependencies:**
+**Required Dependencies:**
 
-- `ansible-network-triager` — GitHub issue/PR scanner (installed via `scripts/setup.sh` inside the skill)
-- `GITHUB_TOKEN` environment variable — required for GitHub API access
+- `gh` CLI — authenticated with `gh auth login` (used for all GitHub queries)
 
 **Required Context:**
 
