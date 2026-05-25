@@ -145,7 +145,7 @@ Run these for every repo in the Collections in Scope table:
 
 ```
 ansible-collections/ansible.netcommon
-ansible-collections/ansible.pylibssh
+ansible/pylibssh
 ansible-collections/ansible.utils
 ansible-collections/cisco.ios
 ansible-collections/cisco.iosxr
