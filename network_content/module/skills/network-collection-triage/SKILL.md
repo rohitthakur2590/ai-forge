@@ -129,7 +129,7 @@ and open pull requests from the last 14 days (configurable).
 
 ```bash
 gh issue list --repo ansible-collections/cisco.ios --state open \
-  --search "updated:>=YYYY-MM-DD draft:false" --json number,title,url,labels,createdAt,author,assignees --limit 50
+  --search "updated:>=YYYY-MM-DD" --json number,title,url,labels,createdAt,author,assignees --limit 50 --search "-label:stale"
 ```
 
 **For pull requests:**
@@ -138,7 +138,7 @@ gh issue list --repo ansible-collections/cisco.ios --state open \
 gh pr list --repo ansible-collections/cisco.ios --state open \
   --search "updated:>=YYYY-MM-DD draft:false" \
   --json number,title,url,labels,createdAt,author,isDraft,reviewDecision \
-  --limit 50
+  --limit 50 --search "-label:stale"
 ```
 
 Run these for every repo in the Collections in Scope table:
@@ -289,7 +289,7 @@ Create a detailed markdown report of the triage results, ensuring all the issues
 
 ### Step 7 — Generate the JSON
 
-Generate a JSON file of the triage results, ensuring all the issues and PRs are listed in the JSON file. It should be written in the user's current working directory.
+Generate a JSON file of the triage results, ensuring all the issues and PRs are listed in the JSON file. It should be written in the user's current working directory. **Do not** use any summary data from the markdown, utilize the data generated from relevant commands and generate the json.
 The format of the JSON file should be as mentioned below:
 
 ## Output — JSON schema
