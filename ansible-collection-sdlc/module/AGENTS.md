@@ -295,6 +295,9 @@ When transitioning between agent roles:
 
 - **get-pr-number skill**: Helper skill that determines the pull request number for a branch. Used internally by other skills.
 
+- **get-pr-zuul-results skill**: Helper skill that gets Zuul CI build status and log URLs for a pull request in ansible-collections repositories.
+  Used internally by other skills and workflows that need to check Zuul CI status.
+
 - **get-upstream-info skill**: Helper skill that determines upstream repository information and service identifiers (GitHub/GitLab). Used internally by other skills.
 
 ## Configuration
